@@ -1,0 +1,31 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "MailSieve Email Validation", "version": "1.0.0", "description": "Validate email addresses and detect disposable domains: syntax, disposable blocklist, live MX lookup, role accounts, free providers, typo suggestions and a 0-100 score." },
+  "servers": [{ "url": "https://REPLACE-WITH-YOUR-WORKER.workers.dev" }],
+  "paths": {
+    "/v1/check": {
+      "get": {
+        "summary": "Check one email address",
+        "operationId": "checkEmail",
+        "parameters": [{ "name": "email", "in": "query", "required": true, "schema": { "type": "string" }, "example": "hello@mailinator.com" }],
+        "responses": { "200": { "description": "Validation result", "content": { "application/json": { "example": { "email": "hello@mailinator.com", "valid_syntax": true, "local": "hello", "domain": "mailinator.com", "disposable": true, "role_account": true, "free_provider": false, "plus_tag": false, "did_you_mean": null, "mx": { "status": "found", "records": ["mail.mailinator.com"] }, "score": 0, "verdict": "undeliverable", "reasons": ["disposable_domain", "role_account"] } } } } }
+      }
+    },
+    "/v1/domain": {
+      "get": {
+        "summary": "Check a domain",
+        "operationId": "checkDomain",
+        "parameters": [{ "name": "domain", "in": "query", "required": true, "schema": { "type": "string" }, "example": "yopmail.com" }],
+        "responses": { "200": { "description": "Domain result", "content": { "application/json": { "example": { "domain": "yopmail.com", "disposable": true, "free_provider": false, "did_you_mean": null, "mx": { "status": "found", "records": ["mx.yopmail.com"] } } } } } }
+      }
+    },
+    "/v1/bulk": {
+      "post": {
+        "summary": "Check up to 50 email addresses (Pro plan and above)",
+        "operationId": "checkBulk",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["emails"], "properties": { "emails": { "type": "array", "maxItems": 50, "items": { "type": "string" } } } }, "example": { "emails": ["jane@gmial.com", "hello@mailinator.com"] } } } },
+        "responses": { "200": { "description": "Results with a summary", "content": { "application/json": { "example": { "total": 2, "summary": { "deliverable": 0, "risky": 1, "undeliverable": 1 }, "results": [] } } } } }
+      }
+    }
+  }
+}

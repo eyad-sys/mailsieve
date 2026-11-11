@@ -1,0 +1,9 @@
+name = "mailsieve"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[vars]
+# Paste your Rapid listing URL here after step 4 of the README, then push.
+RAPIDAPI_URL = ""
+# Set RAPIDAPI_PROXY_SECRET as an encrypted secret in the Cloudflare dashboard (never here).

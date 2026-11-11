@@ -1,0 +1,11 @@
+{
+  "name": "mailsieve",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/test.mjs",
+    "update-lists": "node scripts/update-lists.mjs",
+    "deploy": "npx wrangler deploy"
+  }
+}

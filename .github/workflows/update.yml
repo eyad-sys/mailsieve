@@ -1,0 +1,31 @@
+name: Refresh disposable domain list
+
+on:
+  schedule:
+    - cron: "17 4 * * 1" # every Monday 04:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/update-lists.mjs
+      - run: node test/test.mjs
+      - name: Commit if the list changed
+        run: |
+          if git diff --quiet; then
+            echo "No changes."
+          else
+            git config user.name "mailsieve-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git commit -am "data: refresh disposable domain list"
+            git push
+          fi
+      # The push triggers Cloudflare's Git integration, which redeploys the Worker.
