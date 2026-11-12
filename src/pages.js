@@ -122,7 +122,7 @@ export function landingPage(ctx) {
 <form class="sheet" id="f" autocomplete="off">
 <label for="e">Try it with any address</label>
 <div class="row"><input id="e" name="email" type="text" inputmode="email" placeholder="someone@example.com" spellcheck="false" required><button class="btn" type="submit">Check address</button></div>
-<div class="tries"><button type="button" data-v="hello@mailinator.com">A throwaway inbox</button><button type="button" data-v="jane@gmial.com">A typo</button><button type="button" data-v="sales@github.com">A shared mailbox</button></div>
+<div class="tries"><button type="button" data-v="hello@mailinator.com">A throwaway inbox</button><button type="button" data-v="jane@outlok.com">A typo</button><button type="button" data-v="sales@github.com">A shared mailbox</button></div>
 <div class="result" id="r" aria-live="polite"><p class="msg">The verdict is stamped here.</p></div>
 </form>
 </div>
@@ -134,7 +134,7 @@ export function landingPage(ctx) {
 <div class="checks">
 <div><h3>Throwaway inbox</h3><p>Matched against ${n} known disposable email domains, including subdomains.</p></div>
 <div><h3>Can receive mail</h3><p>A live DNS lookup confirms the domain has mail servers and lists them.</p></div>
-<div><h3>Likely typo</h3><p>gmial.com comes back with the address you can suggest instead.</p></div>
+<div><h3>Likely typo</h3><p>outlok.com comes back with the address you can suggest instead.</p></div>
 <div><h3>Shared mailbox</h3><p>Flags addresses like info@, sales@ and support@ that no single person reads.</p></div>
 <div><h3>Free provider</h3><p>Tells Gmail and Outlook addresses apart from company domains.</p></div>
 <div><h3>Valid format</h3><p>Rejects addresses that no mail server would accept.</p></div>
@@ -146,9 +146,9 @@ export function landingPage(ctx) {
 <div class="two">
 <div>
 <p>Call <code>GET /v1/check</code> with an email. Use <code>GET /v1/domain</code> when you only have a domain, and <code>POST /v1/bulk</code> to clean up to 50 addresses at once.</p>
-<pre>curl "https://mailsieve.p.rapidapi.com/v1/check?email=hello@mailinator.com" \\
+<pre>curl "https://mailsieve-email-validation.p.rapidapi.com/v1/check?email=hello@mailinator.com" \\
   -H "X-RapidAPI-Key: YOUR_KEY" \\
-  -H "X-RapidAPI-Host: mailsieve.p.rapidapi.com"</pre>
+  -H "X-RapidAPI-Host: mailsieve-email-validation.p.rapidapi.com"</pre>
 </div>
 <pre>{
   <span class="k">"email"</span>: <span class="s">"hello@mailinator.com"</span>,
@@ -240,9 +240,9 @@ ${info.did_you_mean ? `<p>This domain looks like a misspelling of <a href="/disp
 <section>
 <h2>Check ${d} addresses automatically</h2>
 <p>The MailSieve API runs this check, plus a live mail-server lookup and typo detection, on any address in one request.</p>
-<pre>curl "https://mailsieve.p.rapidapi.com/v1/check?email=someone@${d}" \\
+<pre>curl "https://mailsieve-email-validation.p.rapidapi.com/v1/check?email=someone@${d}" \\
   -H "X-RapidAPI-Key: YOUR_KEY" \\
-  -H "X-RapidAPI-Host: mailsieve.p.rapidapi.com"</pre>
+  -H "X-RapidAPI-Host: mailsieve-email-validation.p.rapidapi.com"</pre>
 <p style="margin-top:1.6rem"><a class="btn alt" href="${esc(key)}">Get a free API key</a></p>
 </section>
 <section>

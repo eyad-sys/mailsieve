@@ -5,5 +5,5 @@ workers_dev = true
 
 [vars]
 # Paste your Rapid listing URL here after step 4 of the README, then push.
-RAPIDAPI_URL = ""
+RAPIDAPI_URL = "https://rapidapi.com/eyadsys/api/mailsieve-email-validation"
 # Set RAPIDAPI_PROXY_SECRET as an encrypted secret in the Cloudflare dashboard (never here).

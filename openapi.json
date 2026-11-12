@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.3",
   "info": { "title": "MailSieve Email Validation", "version": "1.0.0", "description": "Validate email addresses and detect disposable domains: syntax, disposable blocklist, live MX lookup, role accounts, free providers, typo suggestions and a 0-100 score." },
-  "servers": [{ "url": "https://REPLACE-WITH-YOUR-WORKER.workers.dev" }],
+  "servers": [{ "url": "https://mailsieve.eyadelhossieny7.workers.dev" }],
   "paths": {
     "/v1/check": {
       "get": {
@@ -23,7 +23,7 @@
       "post": {
         "summary": "Check up to 50 email addresses (Pro plan and above)",
         "operationId": "checkBulk",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["emails"], "properties": { "emails": { "type": "array", "maxItems": 50, "items": { "type": "string" } } } }, "example": { "emails": ["jane@gmial.com", "hello@mailinator.com"] } } } },
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["emails"], "properties": { "emails": { "type": "array", "maxItems": 50, "items": { "type": "string" } } } }, "example": { "emails": ["jane@outlok.com", "hello@mailinator.com"] } } } },
         "responses": { "200": { "description": "Results with a summary", "content": { "application/json": { "example": { "total": 2, "summary": { "deliverable": 0, "risky": 1, "undeliverable": 1 }, "results": [] } } } } }
       }
     }

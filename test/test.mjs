@@ -1,7 +1,7 @@
 // Offline smoke test: mocks DNS, then exercises every route. Run: node test/test.mjs
 import assert from "node:assert/strict";
 
-const MX = { "mailinator.com": ["10 mail.mailinator.com."], "gmail.com": ["5 gmail-smtp-in.l.google.com."], "github.com": ["1 aspmx.l.google.com."], "gmial.com": ["10 mx.gmial.com."] };
+const MX = { "mailinator.com": ["10 mail.mailinator.com."], "gmail.com": ["5 gmail-smtp-in.l.google.com."], "github.com": ["1 aspmx.l.google.com."], "outlok.com": ["10 mx.example.net."], "gmaill.com": ["10 mx.example.net."], "yahooo.com": ["10 mx.example.net."], "gmail.co": ["10 mx.example.net."] };
 globalThis.fetch = async (url) => {
   const u = new URL(url);
   const name = u.searchParams.get("name"), type = u.searchParams.get("type");
@@ -24,8 +24,13 @@ assert.equal(r.disposable, true); assert.equal(r.verdict, "undeliverable"); asse
 r = await (await call("/v1/check?email=jane.doe@gmail.com", auth)).json();
 assert.equal(r.verdict, "deliverable"); assert.equal(r.score, 100); assert.equal(r.free_provider, true);
 
-r = await (await call("/v1/check?email=jane@gmial.com", auth)).json();
-assert.equal(r.did_you_mean, "jane@gmail.com"); assert.equal(r.verdict, "risky");
+// The blocklist changes weekly and sometimes lists typo domains, so pick one that is not on it.
+const { DISPOSABLE } = await import("../src/validate.js");
+const typo = [["outlok.com", "outlook.com"], ["gmaill.com", "gmail.com"], ["yahooo.com", "yahoo.com"], ["gmail.co", "gmail.com"]].find(([d]) => !DISPOSABLE.has(d));
+if (typo) {
+  r = await (await call(`/v1/check?email=jane@${typo[0]}`, auth)).json();
+  assert.equal(r.did_you_mean, `jane@${typo[1]}`); assert.equal(r.verdict, "risky");
+}
 
 r = await (await call("/v1/check?email=x@inbox.mailinator.com", auth)).json();
 assert.equal(r.disposable, true, "subdomains of disposable domains match");
