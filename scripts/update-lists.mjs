@@ -21,6 +21,8 @@ if (!text) { console.error("No source reachable; keeping current list."); proces
 const fetched = text.split("\n").map((l) => l.trim().toLowerCase()).filter((l) => DOMAIN.test(l));
 if (fetched.length < 1000) { console.error(`Only ${fetched.length} domains fetched; refusing to update.`); process.exit(0); }
 
-const merged = [...new Set([...current, ...fetched])].sort();
+// Never let a mainstream provider onto the blocklist, whatever the upstream file says.
+const NEVER = new Set(["gmail.com", "googlemail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "icloud.com", "aol.com", "proton.me", "protonmail.com", "gmx.com", "github.com"]);
+const merged = [...new Set([...current, ...fetched])].filter((d) => !NEVER.has(d)).sort();
 writeFileSync(FILE, JSON.stringify(merged) + "\n");
 console.log(`disposable domains: ${current.length} -> ${merged.length}`);

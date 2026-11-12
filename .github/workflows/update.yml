@@ -16,8 +16,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Test the code against the committed list
+        run: node test/test.mjs
       - run: node scripts/update-lists.mjs
-      - run: node test/test.mjs
+      - name: Sanity-check the refreshed list
+        run: node scripts/check-list.mjs
       - name: Commit if the list changed
         run: |
           if git diff --quiet; then
