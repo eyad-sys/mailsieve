@@ -87,6 +87,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : ""}
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${origin}${path}">
 <meta name="twitter:card" content="summary">
+<meta name="google-site-verification" content="o_ecma27VUGIYaTq5nJMRQgIqlFT30raHN2LGX-pD60">
 ${FONTS}
 <style>${CSS}</style>
 ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, "\\u003c")}</script>` : ""}
