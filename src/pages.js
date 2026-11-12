@@ -1,78 +1,233 @@
 // HTML for the landing page and the programmatic SEO pages (one per disposable domain).
-import { DISPOSABLE_SORTED, checkDomainStatic } from "./validate.js";
+import { DISPOSABLE_SORTED, DOMAIN_RE, checkDomainStatic } from "./validate.js";
+import { CSS } from "./styles.js";
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const json = (v) => JSON.stringify(v).replace(/</g, "\\u003c");
+const count = () => DISPOSABLE_SORTED.length.toLocaleString("en-US");
 
-const CSS = `
-:root{--paper:#EDF0F5;--card:#FBFCFE;--ink:#14213D;--soft:#51607F;--line:#CBD3E1;--red:#C4302B;--blue:#2A56A5;--ok:#1C7A4B;--warn:#9A6200}
-*{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--paper);color:var(--ink);font:400 1.0625rem/1.6 "Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif}
-h1,h2,h3{font-family:"Bricolage Grotesque","Atkinson Hyperlegible",system-ui,sans-serif;font-weight:700;line-height:1.08;letter-spacing:-.02em;margin:0}
-h1{font-size:clamp(2.4rem,6.2vw,4.5rem);max-width:15ch}
-h2{font-size:clamp(1.6rem,3.2vw,2.35rem);margin-bottom:.9rem}
-h3{font-size:1.2rem;letter-spacing:-.01em;margin-bottom:.3rem}
-p{margin:0 0 1rem;max-width:62ch}
-a{color:var(--blue);text-underline-offset:.18em}
-a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
-code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.86rem}
-.wrap{max-width:1080px;margin:0 auto;padding:0 1.5rem}
-.top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem 1rem;padding:1.4rem 0}
-.brand{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:1.3rem;color:var(--ink);text-decoration:none;letter-spacing:-.02em;white-space:nowrap}
-.brand i{display:inline-block;width:.62em;height:.62em;margin-right:.4em;border-radius:50%;border:.16em solid var(--red)}
-.top nav a{margin-right:1.2rem;white-space:nowrap;color:var(--ink);text-decoration:none;font-size:.98rem}
-.top nav a:last-child{margin-right:0}.top nav a:hover{text-decoration:underline}
-.hero{padding:2.5rem 0 4.5rem;display:grid;gap:3rem;grid-template-columns:minmax(0,1fr)}.hero>*,.two>*{min-width:0}
-.lede{font-size:1.2rem;color:var(--soft);margin-top:1.3rem;max-width:46ch}
-@media(min-width:900px){.hero{grid-template-columns:5fr 6fr;align-items:center;padding-top:4rem}}
-.envelope{padding:14px;border-radius:6px;background:repeating-linear-gradient(-45deg,var(--red) 0 18px,var(--card) 18px 36px,var(--blue) 36px 54px,var(--card) 54px 72px);box-shadow:0 22px 44px -26px rgba(20,33,61,.55)}
-.sheet{position:relative;background:var(--card);border-radius:2px;padding:1.8rem 1.6rem 1.5rem;min-height:21rem;overflow:hidden}
-.sheet label{display:block;font-size:.95rem;color:var(--soft);margin-bottom:.4rem}
-.row{display:flex;gap:.6rem;flex-wrap:wrap}
-.row input{flex:1 1 15rem;min-width:0;font:inherit;font-size:1.15rem;padding:.6rem .1rem;border:0;border-bottom:2px solid var(--ink);background:transparent;color:var(--ink);border-radius:0}
-.row input::placeholder{color:#8E9AB3}
-.btn{font:inherit;font-weight:700;cursor:pointer;border:0;border-radius:4px;padding:.72rem 1.15rem;background:var(--ink);color:#fff;text-decoration:none;display:inline-block}
-.btn:hover{background:#22325A}
-.btn.alt{background:var(--red)}.btn.alt:hover{background:#A82723}
-.tries{margin-top:.8rem;font-size:.92rem;color:var(--soft)}
-.tries button{font:inherit;color:var(--blue);background:none;border:0;padding:0;margin-right:.9rem;cursor:pointer;text-decoration:underline;text-underline-offset:.18em}
-.result{margin-top:1.5rem;min-height:7.5rem}
-.result ul{list-style:none;margin:0;padding:0;max-width:60%}
-.result li{padding:.32rem 0;border-bottom:1px dashed var(--line);font-size:.98rem;display:flex;justify-content:space-between;gap:1rem}
-.result li b{font-weight:700}
-.msg{color:var(--soft)}
-.stamp{position:absolute;right:1.1rem;bottom:1.5rem;width:9.2rem;height:9.2rem;border-radius:50%;border:4px double currentColor;display:grid;place-content:center;text-align:center;padding:1.1rem;transform:rotate(-11deg);font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;line-height:1.05;font-size:1.02rem;opacity:.9}
-.stamp small{display:block;font:400 .78rem/1.3 "Atkinson Hyperlegible",system-ui,sans-serif;margin-top:.3rem}
-.stamp.deliverable{color:var(--ok)}.stamp.risky{color:var(--warn)}.stamp.undeliverable{color:var(--red)}
-.stamp.in{animation:thunk .28s cubic-bezier(.2,1.4,.4,1)}
-@keyframes thunk{from{transform:rotate(-2deg) scale(1.7);opacity:0}to{transform:rotate(-11deg) scale(1);opacity:.9}}
-@media(prefers-reduced-motion:reduce){.stamp.in{animation:none}}
-@media(max-width:560px){.result ul{max-width:100%}.stamp{position:static;margin:1.2rem 0 0 auto}}
-section{padding:4rem 0;border-top:1px solid var(--line)}
-.checks{display:grid;gap:1.6rem 3rem;grid-template-columns:repeat(auto-fit,minmax(15.5rem,1fr));margin-top:2rem}
-.checks p{color:var(--soft);font-size:1rem;margin:0}
-pre{background:var(--ink);color:#DCE4F5;padding:1.2rem 1.3rem;border-radius:6px;overflow-x:auto;line-height:1.55;margin:1.2rem 0 0}
-pre .k{color:#8FB4FF}pre .s{color:#F2B8A2}
-.two{display:grid;gap:2rem;grid-template-columns:minmax(0,1fr)}
-@media(min-width:900px){.two{grid-template-columns:1fr 1fr}}
-table{width:100%;border-collapse:collapse;margin-top:1.5rem;font-size:1rem}
-th,td{text-align:left;padding:.85rem .8rem .85rem 0;border-bottom:1px solid var(--line);vertical-align:top}
-th{font-weight:700}
-td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-.scroll{overflow-x:auto}
-.verdict{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:clamp(2rem,5vw,3.4rem);line-height:1.05;letter-spacing:-.02em;margin:.4rem 0 1.2rem;max-width:18ch}
-.verdict.yes{color:var(--red)}.verdict.no{color:var(--ok)}
-.cols{columns:14rem;column-gap:2rem;margin-top:1.4rem;padding:0;list-style:none}
-.cols li{padding:.16rem 0;break-inside:avoid}
-.letters a{display:inline-block;min-width:2.1rem;text-align:center;padding:.3rem .2rem;margin:0 .25rem .4rem 0;border:1px solid var(--line);border-radius:4px;background:var(--card);text-decoration:none;font-weight:700}
-footer{padding:2.5rem 0 3.5rem;border-top:1px solid var(--line);color:var(--soft);font-size:.95rem}
-footer a{color:var(--soft);margin-right:1.2rem}
-`;
+const API_HOST = "mailsieve-email-validation.p.rapidapi.com";
+const GOOGLE_VERIFICATION = "o_ecma27VUGIYaTq5nJMRQgIqlFT30raHN2LGX-pD60";
+const FONTS = `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">`;
 
-const FONTS = `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">`;
+/* ---------- small SVG parts ---------- */
 
-function shell({ origin, rapidUrl }, { title, description, path, body, jsonLd, noindex }) {
-  const key = rapidUrl || `${origin}/#pricing`;
+const SIEVE = `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5" fill="none" stroke="currentColor" stroke-width="2.6"/><g fill="currentColor"><circle cx="16" cy="16" r="2.1"/><circle cx="9.6" cy="16" r="2.1"/><circle cx="22.4" cy="16" r="2.1"/><circle cx="12.8" cy="10.5" r="2.1"/><circle cx="19.2" cy="10.5" r="2.1"/><circle cx="12.8" cy="21.5" r="2.1"/><circle cx="19.2" cy="21.5" r="2.1"/></g></svg>`;
+
+export const FAVICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#1D2BA4"/><circle cx="16" cy="16" r="10.5" fill="none" stroke="#fff" stroke-width="2.4"/><g fill="#fff"><circle cx="16" cy="16" r="1.8"/><circle cx="11" cy="16" r="1.8"/><circle cx="21" cy="16" r="1.8"/><circle cx="13.5" cy="11.7" r="1.8"/><circle cx="18.5" cy="11.7" r="1.8"/><circle cx="13.5" cy="20.3" r="1.8"/><circle cx="18.5" cy="20.3" r="1.8"/></g></svg>`;
+
+// One shared "inked rubber stamp" texture for every postmark on the page.
+const INK_FILTER = `<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="ink" x="-6%" y="-6%" width="112%" height="112%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.5" xChannelSelector="R" yChannelSelector="G" result="d"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -11 7.5" result="holes"/><feComposite in="d" in2="holes" operator="in"/></filter></svg>`;
+
+const MARKS = {
+  deliverable: { cls: "deliverable", label: "Deliverable", lines: [["DELIVERABLE", 21, 107, 104]] },
+  risky: { cls: "risky", label: "Risky", lines: [["RISKY", 34, 112, 82]] },
+  undeliverable: { cls: "undeliverable", label: "Return to sender", lines: [["RETURN TO", 19, 98, 90], ["SENDER", 24, 121, 90]] },
+  listed: { cls: "undeliverable", label: "Disposable", lines: [["DISPOSABLE", 21, 107, 100]] },
+  clear: { cls: "deliverable", label: "Not listed", lines: [["NOT LISTED", 21, 107, 96]] },
+};
+
+/** A round postmark. `bottom` is the text on the lower arc; `uid` keeps SVG ids unique per page. */
+function postmark(kind, bottom, uid) {
+  const m = MARKS[kind];
+  const text = m.lines
+    .map(([t, size, y, len]) => `<text x="100" y="${y}" text-anchor="middle" font-size="${size}" textLength="${len}" lengthAdjust="spacingAndGlyphs">${t}</text>`)
+    .join("");
+  return `<div class="postmark is-${m.cls}"><svg viewBox="0 0 200 200" role="img" aria-label="${esc(m.label)}. ${esc(bottom.toLowerCase())}"><defs><path id="pt-${uid}" d="M37,100 A63,63 0 0 1 163,100"/><path id="pb-${uid}" d="M21,100 A79,79 0 0 0 179,100"/></defs><g filter="url(#ink)" fill="currentColor" font-family="Archivo,'Arial Narrow',Arial,sans-serif" font-weight="800" style="font-stretch:66%"><circle cx="100" cy="100" r="93" fill="none" stroke="currentColor" stroke-width="3.6"/><circle cx="100" cy="100" r="86" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="100" cy="100" r="56" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="28.5" cy="100" r="2.6"/><circle cx="171.5" cy="100" r="2.6"/><text font-size="12.5" letter-spacing="1.5"><textPath href="#pt-${uid}" startOffset="50%" text-anchor="middle">MAILSIEVE SORTING OFFICE</textPath></text><text font-size="11.5" letter-spacing="1.3"><textPath href="#pb-${uid}" startOffset="50%" text-anchor="middle">${esc(bottom)}</textPath></text>${text}</g></svg></div>`;
+}
+
+function waves() {
+  const line = (y) => `<path d="M0 ${y} q37.5 -28 75 0${" t75 0".repeat(11)}"/>`;
+  return `<svg class="hero-waves" viewBox="0 0 900 270" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" aria-hidden="true" focusable="false">${[34, 84, 134, 184, 234].map(line).join("")}</svg>`;
+}
+
+/* ---------- API samples (shown in the explorer and reused by the docs copy) ---------- */
+
+const SAMPLES = {
+  check: {
+    method: "GET", path: "/v1/check", what: "Check one address",
+    query: ["email", "hello@mailinator.com"],
+    response: {
+      email: "hello@mailinator.com", valid_syntax: true, local: "hello", domain: "mailinator.com",
+      disposable: true, role_account: true, free_provider: false, plus_tag: false, did_you_mean: null,
+      mx: { status: "found", records: ["mail.mailinator.com", "mail2.mailinator.com"] },
+      score: 0, verdict: "undeliverable", reasons: ["disposable_domain", "role_account"],
+    },
+  },
+  domain: {
+    method: "GET", path: "/v1/domain", what: "Check a domain on its own",
+    query: ["domain", "yopmail.com"],
+    response: { domain: "yopmail.com", disposable: true, free_provider: false, did_you_mean: null, mx: { status: "found", records: ["mx.yopmail.com"] } },
+  },
+  bulk: {
+    method: "POST", path: "/v1/bulk", what: "Check up to 50 addresses",
+    body: { emails: ["jane@outlok.com", "hello@mailinator.com"] },
+    response: {
+      total: 2,
+      summary: { deliverable: 0, risky: 1, undeliverable: 1 },
+      results: [
+        {
+          email: "jane@outlok.com", valid_syntax: true, local: "jane", domain: "outlok.com",
+          disposable: false, role_account: false, free_provider: false, plus_tag: false, did_you_mean: "jane@outlook.com",
+          mx: { status: "a_record_only", records: [] },
+          score: 40, verdict: "risky", reasons: ["no_mx_record_a_fallback", "possible_typo"],
+        },
+        {
+          email: "hello@mailinator.com", valid_syntax: true, local: "hello", domain: "mailinator.com",
+          disposable: true, role_account: true, free_provider: false, plus_tag: false, did_you_mean: null,
+          mx: { status: "found", records: ["mail.mailinator.com", "mail2.mailinator.com"] },
+          score: 0, verdict: "undeliverable", reasons: ["disposable_domain", "role_account"],
+        },
+      ],
+    },
+  },
+};
+
+function snippet(lang, ep) {
+  const body = ep.body ? JSON.stringify(ep.body) : null;
+  if (lang === "curl") {
+    return ep.query
+      ? `curl --get \\\n  "https://${API_HOST}${ep.path}" \\\n  --data-urlencode "${ep.query[0]}=${ep.query[1]}" \\\n  -H "X-RapidAPI-Key: YOUR_KEY" \\\n  -H "X-RapidAPI-Host: ${API_HOST}"`
+      : `curl -X POST \\\n  "https://${API_HOST}${ep.path}" \\\n  -H "Content-Type: application/json" \\\n  -H "X-RapidAPI-Key: YOUR_KEY" \\\n  -H "X-RapidAPI-Host: ${API_HOST}" \\\n  -d '${body}'`;
+  }
+  if (lang === "js") {
+    const head = `const host = "${API_HOST}";\n`;
+    return ep.query
+      ? `${head}const url = new URL("https://" + host + "${ep.path}");\nurl.searchParams.set("${ep.query[0]}", "${ep.query[1]}");\n\nconst res = await fetch(url, {\n  headers: {\n    "X-RapidAPI-Key": "YOUR_KEY",\n    "X-RapidAPI-Host": host,\n  },\n});\nconst result = await res.json();\n\nif (result.verdict === "undeliverable") {\n  // reject the sign-up\n}`
+      : `${head}\nconst res = await fetch("https://" + host + "${ep.path}", {\n  method: "POST",\n  headers: {\n    "Content-Type": "application/json",\n    "X-RapidAPI-Key": "YOUR_KEY",\n    "X-RapidAPI-Host": host,\n  },\n  body: JSON.stringify(${JSON.stringify(ep.body, null, 2).replace(/\n/g, "\n  ")}),\n});\nconst { summary, results } = await res.json();`;
+  }
+  const head = `import requests\n\nHOST = "${API_HOST}"\n\n`;
+  return ep.query
+    ? `${head}res = requests.get(\n    f"https://{HOST}${ep.path}",\n    params={"${ep.query[0]}": "${ep.query[1]}"},\n    headers={\n        "X-RapidAPI-Key": "YOUR_KEY",\n        "X-RapidAPI-Host": HOST,\n    },\n    timeout=10,\n)\nresult = res.json()\n\nif result["verdict"] == "undeliverable":\n    ...  # reject the sign-up`
+    : `${head}res = requests.post(\n    f"https://{HOST}${ep.path}",\n    json={"emails": ${JSON.stringify(ep.body.emails).replace(/,/g, ", ")}},\n    headers={\n        "X-RapidAPI-Key": "YOUR_KEY",\n        "X-RapidAPI-Host": HOST,\n    },\n    timeout=20,\n)\ndata = res.json()\nprint(data["summary"])`;
+}
+
+function highlight(obj) {
+  return esc(JSON.stringify(obj, null, 2)).replace(
+    /(&quot;(?:(?!&quot;).)*&quot;)(\s*:)?|\b(true|false|null|-?\d+(?:\.\d+)?)\b/g,
+    (m, str, colon, lit) => (str ? `<span class="${colon ? "k" : "s"}">${str}</span>${colon || ""}` : `<span class="n">${lit}</span>`),
+  );
+}
+
+/* ---------- client scripts (plain ES5, no template literals inside) ---------- */
+
+const LOOKUP_JS = String.raw`
+(function(){
+  var forms=document.querySelectorAll('form[data-lookup]');
+  for(var i=0;i<forms.length;i++)(function(f){
+    var input=f.querySelector('input'),msg=f.querySelector('.lookup-msg');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var d=input.value.trim().toLowerCase().replace(/^[a-z]+:\/\//,'').replace(/^.*@/,'').replace(/[\/?#].*$/,'').replace(/\.$/,'');
+      if(!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(d)){
+        if(msg)msg.textContent='Type a domain such as mailinator.com.';
+        input.focus();return;
+      }
+      window.location.assign('/disposable/'+d);
+    });
+    input.addEventListener('input',function(){if(msg)msg.textContent='';});
+  })(forms[i]);
+})();`;
+
+const LANDING_JS = String.raw`
+(function(){
+  var D=JSON.parse(document.getElementById('ms-data').textContent);
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return '&#'+c.charCodeAt(0)+';';});}
+
+  /* live demo */
+  var form=document.getElementById('demo'),input=document.getElementById('email'),out=document.getElementById('result');
+  var btn=form.querySelector('button[type="submit"]'),seq=0;
+  function row(k,v,c){return '<div><dt>'+k+'</dt><dd class="'+c+'">'+v+'</dd></div>';}
+  function stamp(v,b){return D.stamps[v].replace('@@B@@',esc(b)).replace('class="postmark','class="postmark thunk');}
+  function show(d){
+    if(!d||d.error){out.innerHTML='<p class="res-msg">'+esc(d&&d.error?d.error.message:'The check did not go through. Try again in a moment.')+'</p>';return;}
+    if(!d.valid_syntax){out.innerHTML='<dl class="slip">'+row('Valid format','No','bad')+'</dl>'+stamp('undeliverable','NOT AN EMAIL ADDRESS');return;}
+    var mx={found:['Yes','good'],a_record_only:['Probably','mid'],none:['No','bad'],unknown:['Could not check','mid']}[d.mx&&d.mx.status]||['Could not check','mid'];
+    var vc={deliverable:'good',risky:'mid',undeliverable:'bad'}[d.verdict]||'mid';
+    var h='<dl class="slip">'
+      +row('Throwaway inbox',d.disposable?'Yes':'No',d.disposable?'bad':'good')
+      +row('Can receive mail',mx[0],mx[1])
+      +row('Shared mailbox',d.role_account?'Yes':'No',d.role_account?'mid':'good')
+      +row('Score',esc(d.score)+' / 100',vc)+'</dl>'
+      +stamp(D.stamps[d.verdict]?d.verdict:'risky','SCORE '+d.score+' OF 100');
+    if(d.did_you_mean)h+='<p class="res-hint">Did you mean <button type="button" data-fix="'+esc(d.did_you_mean)+'">'+esc(d.did_you_mean)+'</button>?</p>';
+    out.innerHTML=h;
+  }
+  function run(){
+    var v=input.value.trim();
+    if(!v){input.focus();return;}
+    var id=++seq;
+    btn.disabled=true;btn.textContent='Checking';
+    fetch('/demo/check?email='+encodeURIComponent(v),{headers:{accept:'application/json'}})
+      .then(function(r){return r.json();})
+      .then(function(d){if(id===seq)show(d);})
+      .catch(function(){if(id===seq)show(null);})
+      .then(function(){if(id===seq){btn.disabled=false;btn.textContent='Check address';}});
+  }
+  form.addEventListener('submit',function(ev){ev.preventDefault();run();});
+  form.addEventListener('click',function(ev){
+    var t=ev.target.closest?ev.target.closest('[data-v],[data-fix]'):null;
+    if(!t)return;
+    input.value=t.getAttribute('data-v')||t.getAttribute('data-fix');
+    run();
+  });
+
+  /* API explorer */
+  var ep='check',lang='curl',snip=document.getElementById('snippet'),resp=document.getElementById('response');
+  function press(group,attr,val){
+    var b=document.querySelectorAll('['+attr+']');
+    for(var i=0;i<b.length;i++)b[i].setAttribute('aria-pressed',b[i].getAttribute(attr)===val?'true':'false');
+  }
+  function paint(){snip.textContent=D.snippets[ep][lang];resp.innerHTML=D.responses[ep];snip.parentNode.scrollTop=0;resp.parentNode.scrollTop=0;}
+  document.addEventListener('click',function(ev){
+    var t=ev.target.closest?ev.target.closest('[data-ep],[data-lang]'):null;
+    if(!t)return;
+    if(t.hasAttribute('data-ep')){ep=t.getAttribute('data-ep');press(0,'data-ep',ep);}
+    else{lang=t.getAttribute('data-lang');press(0,'data-lang',lang);}
+    paint();
+  });
+  var copy=document.getElementById('copy'),timer;
+  function copied(ok){copy.textContent=ok?'Copied':'Press Ctrl+C';clearTimeout(timer);timer=setTimeout(function(){copy.textContent='Copy';},1600);}
+  copy.addEventListener('click',function(){
+    var text=snip.textContent;
+    function fallback(){
+      var r=document.createRange();r.selectNodeContents(snip);
+      var s=window.getSelection();s.removeAllRanges();s.addRange(r);
+      var ok=false;try{ok=document.execCommand('copy');}catch(e){}
+      copied(ok);
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){copied(true);},fallback);}
+    else fallback();
+  });
+})();`;
+
+/* ---------- shared layout ---------- */
+
+function topNav(ctx) {
+  return `<nav class="top" aria-label="Main">
+<a class="brand" href="/">${SIEVE}<span>MailSieve</span></a>
+<div class="top-links"><a href="/#checks">Checks</a><a href="/#api">API</a><a href="/#pricing">Pricing</a><a href="/disposable">Domain list</a><a class="btn btn-white" href="${esc(ctx.keyUrl)}"${ctx.ext}>Get a free API key</a></div>
+</nav>`;
+}
+
+function lookupForm(id, error) {
+  return `<form action="/disposable" method="get" data-lookup>
+<label class="vh" for="${id}">Domain to look up</label>
+<input id="${id}" name="domain" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="mailinator.com" required>
+<button class="btn btn-white" type="submit">Look up domain</button>
+<p class="lookup-msg" role="status">${error ? esc(error) : ""}</p>
+</form>`;
+}
+
+function footer(ctx) {
+  return `<footer class="foot on-ink"><div class="wrap">
+<a class="brand" href="/">${SIEVE}<span>MailSieve</span></a>
+<nav aria-label="Footer"><a href="/#checks">Checks</a><a href="/#api">API</a><a href="/#pricing">Pricing</a><a href="/#faq">Questions</a><a href="/disposable">Disposable domain list</a><a href="${esc(ctx.keyUrl)}"${ctx.ext}>Get a free API key</a></nav>
+<p>MailSieve reads public DNS records and an open-source blocklist that is refreshed every Monday. It never sends mail to the addresses you check.</p>
+</div></footer>`;
+}
+
+function shell(ctx, { title, description, path, body, jsonLd, noindex, scripts = "" }) {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -80,183 +235,293 @@ function shell({ origin, rapidUrl }, { title, description, path, body, jsonLd, n
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
-<link rel="canonical" href="${origin}${path}">
+<link rel="canonical" href="${ctx.origin}${path}">
 ${noindex ? '<meta name="robots" content="noindex">' : ""}
+<meta name="theme-color" content="#1D2BA4">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="MailSieve">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
-<meta property="og:url" content="${origin}${path}">
+<meta property="og:url" content="${ctx.origin}${path}">
 <meta name="twitter:card" content="summary">
-<meta name="google-site-verification" content="o_ecma27VUGIYaTq5nJMRQgIqlFT30raHN2LGX-pD60">
+<meta name="google-site-verification" content="${GOOGLE_VERIFICATION}">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 ${FONTS}
 <style>${CSS}</style>
-${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, "\\u003c")}</script>` : ""}
+${jsonLd ? `<script type="application/ld+json">${json(jsonLd)}</script>` : ""}
 </head>
 <body>
-<div class="wrap">
-<header class="top">
-<a class="brand" href="/"><i></i>MailSieve</a>
-<nav><a href="/#api">API</a><a href="/#pricing">Pricing</a><a href="/disposable">Domain list</a></nav>
-</header>
+${INK_FILTER}
 ${body}
-<footer>
-<a href="/">MailSieve</a><a href="/disposable">Disposable domain list</a><a href="${esc(key)}">Get an API key</a>
-<p style="margin-top:1rem">Checks use public DNS and an open-source blocklist that is refreshed every week. MailSieve never sends mail to the addresses you check and does not store them.</p>
-</footer>
-</div>
+${footer(ctx)}
+${scripts}
 </body>
 </html>`;
 }
 
-export function landingPage(ctx) {
-  const key = ctx.rapidUrl || "#pricing";
-  const n = DISPOSABLE_SORTED.length.toLocaleString("en-US");
+function context(ctx) {
+  // Marketplace links open in a new tab so the visitor keeps the site open while they sign up.
+  return { ...ctx, keyUrl: ctx.rapidUrl || "/#pricing", pricingUrl: ctx.rapidUrl ? `${ctx.rapidUrl}/pricing` : "/#pricing", ext: ctx.rapidUrl ? ' target="_blank" rel="noopener"' : "" };
+}
+
+/* ---------- landing page ---------- */
+
+const FAQ = (n) => [
+  ["Does MailSieve send email to the addresses I check?", "No. It reads the domain's public DNS records and compares the domain with a blocklist. Nothing is ever sent to the address."],
+  ["Can it tell me whether one specific mailbox exists?", "No. MailSieve confirms that the domain can receive mail, but it does not connect to mail servers, so a made-up name at a real domain can still pass. It is built to stop throwaway inboxes, typos and dead domains at sign-up."],
+  ["Where does the blocklist come from?", `From the open-source disposable-email-domains project, merged into MailSieve every Monday. It holds ${n} domains today, and subdomains of a listed domain are caught too.`],
+  ["Do you keep the addresses I check?", "MailSieve does not store them. Requests reach MailSieve through the Rapid gateway, which keeps its own usage logs for billing."],
+  ["What happens when I use up my monthly checks?", "Every plan has a hard limit. When the checks run out, calls are refused until the next billing cycle or until you move to a bigger plan. There are no per-check overage charges."],
+  ["Which endpoints are on the free plan?", "Single address checks and domain checks, with every signal and the score. Bulk checks start on Pro."],
+];
+
+export function landingPage(rawCtx) {
+  const ctx = context(rawCtx);
+  const n = count();
+  const faq = FAQ(n);
+
+  const data = {
+    stamps: { deliverable: postmark("deliverable", "@@B@@", "d"), risky: postmark("risky", "@@B@@", "d"), undeliverable: postmark("undeliverable", "@@B@@", "d") },
+    snippets: Object.fromEntries(Object.entries(SAMPLES).map(([k, ep]) => [k, { curl: snippet("curl", ep), js: snippet("js", ep), python: snippet("python", ep) }])),
+    responses: Object.fromEntries(Object.entries(SAMPLES).map(([k, ep]) => [k, highlight(ep.response)])),
+  };
+
+  const plan = (cls, name, price, quota, items, cta, tag) => `<article class="plan ${cls}"><div class="plan-face"><div class="plan-in">
+<h3 class="plan-name"><span>${name}</span>${tag ? `<small>${tag}</small>` : ""}</h3>
+<p class="price"><b>${price}</b><span>per month</span></p>
+<p class="quota">${quota} checks a month</p>
+<ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul>
+<a class="btn ${cls === "p-basic" ? "btn-ink" : "btn-white"}" href="${esc(ctx.pricingUrl)}"${ctx.ext}>${cta}</a>
+</div></div></article>`;
+
   const body = `
-<main>
-<div class="hero">
-<div>
-<h1>Find the fake email addresses before they sign up.</h1>
-<p class="lede">MailSieve is an email validation API. One request tells you whether an address can receive mail, and whether it is a throwaway inbox.</p>
-<p style="margin-top:1.6rem"><a class="btn alt" href="${esc(key)}">Get a free API key</a></p>
+<header class="hero on-blue">
+${waves()}
+<div class="wrap">
+${topNav(ctx)}
+<div class="hero-grid">
+<div class="hero-copy">
+<h1 class="display">Return fake emails <em>to sender.</em></h1>
+<p class="lead">MailSieve checks an address in one API call. It tells you if the inbox is a throwaway, if the domain can receive mail, and if the address is a typo.</p>
+<div class="cta-row"><a class="btn btn-red" href="${esc(ctx.keyUrl)}"${ctx.ext}>Get a free API key</a><a class="btn btn-ghost" href="#api">See the API</a></div>
+<p class="hero-note"><b>${n} throwaway domains</b> on the blocklist, refreshed every Monday. The free plan covers 500 checks a month.</p>
 </div>
-<div class="envelope">
-<form class="sheet" id="f" autocomplete="off">
-<label for="e">Try it with any address</label>
-<div class="row"><input id="e" name="email" type="text" inputmode="email" placeholder="someone@example.com" spellcheck="false" required><button class="btn" type="submit">Check address</button></div>
-<div class="tries"><button type="button" data-v="hello@mailinator.com">A throwaway inbox</button><button type="button" data-v="jane@outlok.com">A typo</button><button type="button" data-v="sales@github.com">A shared mailbox</button></div>
-<div class="result" id="r" aria-live="polite"><p class="msg">The verdict is stamped here.</p></div>
+<div class="desk">
+<div class="env-back" aria-hidden="true"></div>
+<form class="env" id="demo" autocomplete="off" novalidate>
+<div class="env-paper">
+<div class="env-head">
+<p class="env-from">MailSieve sorting office<br>Live demo, real checks</p>
+<div class="pstamp" aria-hidden="true"><div class="pstamp-in">${SIEVE}<span>1 CHECK</span></div></div>
+</div>
+<label for="email">Address to check</label>
+<div class="addr"><input id="email" name="email" type="text" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="someone@example.com" value="hello@mailinator.com"><button class="btn btn-ink" type="submit">Check address</button></div>
+<div class="chips"><span>Try</span><button type="button" data-v="hello@mailinator.com">hello@mailinator.com</button><button type="button" data-v="jane@outlok.com">jane@outlok.com</button><button type="button" data-v="sales@github.com">sales@github.com</button><button type="button" data-v="you@gmail.com">you@gmail.com</button></div>
+<div class="res" id="result" aria-live="polite">
+<dl class="slip"><div><dt>Throwaway inbox</dt><dd class="bad">Yes</dd></div><div><dt>Can receive mail</dt><dd class="good">Yes</dd></div><div><dt>Shared mailbox</dt><dd class="mid">Yes</dd></div><div><dt>Score</dt><dd class="bad">0 / 100</dd></div></dl>
+${postmark("undeliverable", "SCORE 0 OF 100", "d")}
+</div>
+</div>
 </form>
 </div>
 </div>
+</div>
+</header>
 
-<section>
-<h2>What each check tells you</h2>
-<p>Every response carries these six answers, a 0 to 100 score, and a plain verdict you can branch on.</p>
-<div class="checks">
-<div><h3>Throwaway inbox</h3><p>Matched against ${n} known disposable email domains, including subdomains.</p></div>
-<div><h3>Can receive mail</h3><p>A live DNS lookup confirms the domain has mail servers and lists them.</p></div>
-<div><h3>Likely typo</h3><p>outlok.com comes back with the address you can suggest instead.</p></div>
-<div><h3>Shared mailbox</h3><p>Flags addresses like info@, sales@ and support@ that no single person reads.</p></div>
-<div><h3>Free provider</h3><p>Tells Gmail and Outlook addresses apart from company domains.</p></div>
-<div><h3>Valid format</h3><p>Rejects addresses that no mail server would accept.</p></div>
+<main>
+<section class="sec" id="checks">
+<div class="wrap">
+<div class="sec-head"><h2 class="display">Every part of the address gets read.</h2>
+<p class="lead">One response carries six signals. Each one is a plain field you can branch on.</p></div>
+<p class="vh">Example address: sales+promo@outlok.com</p>
+<div class="anat-box"><div class="anat" aria-hidden="true"><span class="s-local">sales</span><span class="s-tag">+promo</span><span class="s-at">@</span><span class="s-dom">outlok.com</span></div></div>
+<div class="notes">
+<div class="note k-local"><span class="part">sales</span><h3>Shared mailbox</h3><p>Flags names like sales, info and support that no single person reads.</p><code class="field">role_account</code></div>
+<div class="note k-tag"><span class="part">+promo</span><h3>Plus tag</h3><p>Spots the tag people add to sign up twice with one inbox.</p><code class="field">plus_tag</code></div>
+<div class="note"><span class="part">outlok.com</span><h3>Likely typo</h3><p>Returns the address the person probably meant, here jane@outlook.com.</p><code class="field">did_you_mean</code></div>
+<div class="note"><span class="part">domain</span><h3>Throwaway inbox</h3><p>Compares the domain and its parent domains with ${n} disposable providers.</p><code class="field">disposable</code></div>
+<div class="note"><span class="part">domain</span><h3>Can receive mail</h3><p>Looks up the domain's mail servers live and lists them.</p><code class="field">mx.status</code></div>
+<div class="note"><span class="part">domain</span><h3>Free provider</h3><p>Tells Gmail and Outlook addresses apart from company domains.</p><code class="field">free_provider</code></div>
+</div>
 </div>
 </section>
 
-<section id="api">
-<h2>One request, one answer</h2>
-<div class="two">
-<div>
-<p>Call <code>GET /v1/check</code> with an email. Use <code>GET /v1/domain</code> when you only have a domain, and <code>POST /v1/bulk</code> to clean up to 50 addresses at once.</p>
-<pre>curl "https://mailsieve-email-validation.p.rapidapi.com/v1/check?email=hello@mailinator.com" \\
-  -H "X-RapidAPI-Key: YOUR_KEY" \\
-  -H "X-RapidAPI-Host: mailsieve-email-validation.p.rapidapi.com"</pre>
+<section class="sec sec-paper" id="verdicts">
+<div class="wrap">
+<div class="sec-head"><h2 class="display">Every address leaves with a stamp.</h2>
+<p class="lead">The six signals add up to a score from 0 to 100 and one of three verdicts, so your sign-up form needs a single if statement.</p></div>
+<div class="scale">
+<div class="zone z-bad">${postmark("undeliverable", "SCORE 0 TO 29", "z1")}<div><span class="range">0 to 29</span><h3>Return to sender</h3><p>Throwaway inbox, dead domain or not an address. Reject it.</p></div></div>
+<div class="zone z-mid">${postmark("risky", "SCORE 30 TO 69", "z2")}<div><span class="range">30 to 69</span><h3>Risky</h3><p>A likely typo or a domain with no mail servers listed. Ask the person to confirm.</p></div></div>
+<div class="zone z-good">${postmark("deliverable", "SCORE 70 TO 100", "z3")}<div><span class="range">70 to 100</span><h3>Deliverable</h3><p>Real domain, real mail servers, nothing suspicious. Accept it.</p></div></div>
+<div class="bar" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="ticks" aria-hidden="true"><span>0</span><span>30</span><span><span>70</span><span>100</span></span></div>
 </div>
-<pre>{
-  <span class="k">"email"</span>: <span class="s">"hello@mailinator.com"</span>,
-  <span class="k">"valid_syntax"</span>: true,
-  <span class="k">"disposable"</span>: true,
-  <span class="k">"role_account"</span>: true,
-  <span class="k">"free_provider"</span>: false,
-  <span class="k">"did_you_mean"</span>: null,
-  <span class="k">"mx"</span>: { <span class="k">"status"</span>: <span class="s">"found"</span> },
-  <span class="k">"score"</span>: 0,
-  <span class="k">"verdict"</span>: <span class="s">"undeliverable"</span>,
-  <span class="k">"reasons"</span>: [<span class="s">"disposable_domain"</span>, <span class="s">"role_account"</span>]
-}</pre>
 </div>
 </section>
 
-<section id="pricing">
-<h2>Pricing</h2>
-<p>Start free. Keys, billing and invoices are handled by the Rapid marketplace, so you can cancel there at any time.</p>
-<div class="scroll"><table>
-<thead><tr><th>Plan</th><th class="num">Price per month</th><th class="num">Checks per month</th><th>Bulk endpoint</th></tr></thead>
-<tbody>
-<tr><td>Basic</td><td class="num">$0</td><td class="num">500</td><td>Not included</td></tr>
-<tr><td>Pro</td><td class="num">$9</td><td class="num">25,000</td><td>Included</td></tr>
-<tr><td>Ultra</td><td class="num">$29</td><td class="num">150,000</td><td>Included</td></tr>
-<tr><td>Mega</td><td class="num">$79</td><td class="num">1,000,000</td><td>Included</td></tr>
-</tbody></table></div>
-<p style="margin-top:1.8rem"><a class="btn alt" href="${esc(key)}">Get a free API key</a></p>
+<section class="sec sec-ink on-ink" id="api">
+<div class="wrap">
+<div class="sec-head"><h2 class="display">One request, one answer.</h2>
+<p class="lead">Three endpoints, JSON in and out. Pick an endpoint to see the request and what comes back.</p></div>
+<div class="api">
+<div class="api-tabs">
+${Object.entries(SAMPLES).map(([k, ep], i) => `<button type="button" data-ep="${k}" aria-pressed="${i === 0}"><span class="meth ${ep.method.toLowerCase()}">${ep.method}</span><span class="path">${ep.path}</span><span class="what">${ep.what}</span></button>`).join("\n")}
+</div>
+<div class="panes">
+<div class="pane">
+<div class="pane-bar"><div class="langs"><button type="button" data-lang="curl" aria-pressed="true">cURL</button><button type="button" data-lang="js" aria-pressed="false">JavaScript</button><button type="button" data-lang="python" aria-pressed="false">Python</button></div><button type="button" class="copy" id="copy">Copy</button></div>
+<pre tabindex="0" aria-label="Request example"><code id="snippet">${esc(data.snippets.check.curl)}</code></pre>
+</div>
+<div class="pane">
+<div class="pane-bar"><span>Response</span><span class="status">200 OK</span></div>
+<pre tabindex="0" aria-label="Response example"><code id="response">${data.responses.check}</code></pre>
+</div>
+</div>
+<p class="api-foot">Replace <code>YOUR_KEY</code> with the key Rapid gives you when you subscribe. The free plan is enough to try every field.</p>
+</div>
+</div>
 </section>
-</main>
-<script>
-(function(){
-var f=document.getElementById('f'),e=document.getElementById('e'),r=document.getElementById('r');
-var words={deliverable:['Deliverable','Safe to accept'],risky:['Risky','Ask to confirm'],undeliverable:['Return to sender','Do not accept']};
-function yn(v){return v?'Yes':'No'}
-function esc(s){return String(s).replace(/[&<>"']/g,function(c){return '&#'+c.charCodeAt(0)+';'})}
-function show(d){
- if(d.error){r.innerHTML='<p class="msg">'+esc(d.error.message)+'</p>';return}
- if(!d.valid_syntax){r.innerHTML='<ul><li>Valid format <b>No</b></li></ul><div class="stamp in undeliverable">Return to sender<small>Not an email address</small></div>';return}
- var mx={found:'Yes',a_record_only:'Probably',none:'No',unknown:'Could not check'}[d.mx.status];
- var w=words[d.verdict];
- r.innerHTML='<ul><li>Throwaway inbox <b>'+yn(d.disposable)+'</b></li><li>Can receive mail <b>'+mx+'</b></li><li>Shared mailbox <b>'+yn(d.role_account)+'</b></li><li>Score <b>'+d.score+' / 100</b></li>'+(d.did_you_mean?'<li>Did you mean <b>'+esc(d.did_you_mean)+'</b></li>':'')+'</ul><div class="stamp in '+d.verdict+'">'+w[0]+'<small>'+w[1]+'</small></div>';
-}
-function run(){
- var v=e.value.trim();if(!v)return;
- r.innerHTML='<p class="msg">Checking…</p>';
- fetch('/demo/check?email='+encodeURIComponent(v)).then(function(x){return x.json()}).then(show).catch(function(){r.innerHTML='<p class="msg">The check did not go through. Try again in a moment.</p>'});
-}
-f.addEventListener('submit',function(ev){ev.preventDefault();run()});
-f.querySelectorAll('[data-v]').forEach(function(b){b.addEventListener('click',function(){e.value=b.dataset.v;run()})});
-})();
-</script>`;
+
+<section class="sec sec-paper" id="pricing">
+<div class="wrap">
+<div class="sec-head"><h2 class="display">Pay the postage you need.</h2>
+<p class="lead">Start free and move up when your sign-ups do. Keys, billing and invoices run through the Rapid marketplace, and you can cancel there at any time.</p></div>
+<div class="plans">
+${plan("p-basic", "Basic", "$0", "500", ["Address and domain checks", "All six signals and the score", "Blocklist refreshed weekly"], "Start free")}
+${plan("p-pro", "Pro", "$9", "25,000", ["Everything in Basic", "Bulk checks, 50 addresses a call", "For a live sign-up form"], "Choose Pro", "Most picked")}
+${plan("p-ultra", "Ultra", "$29", "150,000", ["Everything in Pro", "Six times the volume of Pro", "For busy products"], "Choose Ultra")}
+${plan("p-mega", "Mega", "$79", "1,000,000", ["Everything in Pro", "The lowest price per check", "For cleaning whole lists"], "Choose Mega")}
+</div>
+<p class="plans-note">Every plan has a hard monthly limit, so there are no surprise charges for extra checks.</p>
+</div>
+</section>
+
+<section class="sec sec-blue on-blue" id="lookup">
+<div class="wrap lookup">
+<div><h2 class="display">Is a domain on the blocklist?</h2>
+<p class="lead">Look up any domain for free. Each of the ${n} listed domains has its own page.</p></div>
+<div>${lookupForm("lookup-home")}
+<p class="lookup-more">Or <a href="/disposable">browse the whole list</a>.</p></div>
+</div>
+</section>
+
+<section class="sec" id="faq">
+<div class="wrap faq-grid">
+<div class="faq-side"><h2 class="display">Questions people ask first.</h2>
+<p class="lead">Short answers about what MailSieve does, and what it does not do.</p>
+<a class="btn btn-line" href="#api">See the API</a></div>
+<div class="faq">
+${faq.map(([q, a], i) => `<details${i === 0 ? " open" : ""}><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("\n")}
+</div>
+</div>
+</section>
+
+<section class="sec sec-red on-blue">
+<div class="wrap close-grid">
+<div class="close">
+<h2 class="display">Stop the fakes at the front door.</h2>
+<a class="btn btn-white" href="${esc(ctx.keyUrl)}"${ctx.ext}>Get a free API key</a>
+</div>
+${postmark("undeliverable", "FAKES STOP HERE", "c")}
+</div>
+</section>
+</main>`;
+
   return shell(ctx, {
     title: "MailSieve: email validation and disposable email detection API",
-    description: `Check any email address in one API call: disposable domain detection across ${n} domains, live MX lookup, typo suggestions and a 0-100 score. Free plan available.`,
+    description: `Check any email address in one API call: disposable domain detection across ${n} domains, live MX lookup, typo suggestions and a 0 to 100 score. Free plan available.`,
     path: "/",
     body,
+    scripts: `<script type="application/json" id="ms-data">${json(data)}</script>\n<script>${LANDING_JS}</script>\n<script>${LOOKUP_JS}</script>`,
     jsonLd: {
-      "@context": "https://schema.org", "@type": "WebAPI", name: "MailSieve",
-      description: "Email validation and disposable email detection API.",
-      url: ctx.origin + "/", documentation: ctx.origin + "/#api",
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebAPI", name: "MailSieve", url: ctx.origin + "/", documentation: ctx.origin + "/#api",
+          description: "Email validation and disposable email detection API.",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        },
+        { "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
+      ],
     },
   });
 }
 
-export function domainPage(ctx, domain) {
+/* ---------- one page per domain ---------- */
+
+export function domainPage(rawCtx, domain) {
+  const ctx = context(rawCtx);
   const info = checkDomainStatic(domain);
   const d = esc(domain);
-  const key = ctx.rapidUrl || "/#pricing";
   const i = DISPOSABLE_SORTED.indexOf(domain);
   const near = i >= 0
-    ? [...DISPOSABLE_SORTED.slice(Math.max(0, i - 6), i), ...DISPOSABLE_SORTED.slice(i + 1, i + 7)]
-    : DISPOSABLE_SORTED.slice(0, 12);
+    ? [...DISPOSABLE_SORTED.slice(Math.max(0, i - 9), i), ...DISPOSABLE_SORTED.slice(i + 1, i + 10)]
+    : DISPOSABLE_SORTED.slice(0, 18);
   const q = `Is ${domain} a disposable email domain?`;
   const a = info.disposable
-    ? `Yes. ${domain} is on the MailSieve blocklist of disposable email providers. Addresses at this domain are temporary inboxes that anyone can create without signing up, so they are commonly used for fake sign-ups and trial abuse.`
+    ? `Yes. ${domain} is on the MailSieve blocklist of disposable email providers. Addresses at this domain are temporary inboxes that anyone can open without signing up, so they are often used for fake sign-ups and free-trial abuse.`
     : `No. ${domain} is not on the MailSieve blocklist of disposable email providers.${info.free_provider ? " It is a free consumer email provider." : ""}`;
+  const typo = info.did_you_mean && DOMAIN_RE.test(info.did_you_mean) ? info.did_you_mean : null;
+
   const body = `
+<header class="sub-hero on-blue">
+<div class="wrap">
+${topNav(ctx)}
+<div class="sub-grid">
+<div>
+<p class="crumb"><a href="/disposable">Disposable domain list</a></p>
+<h1 class="sub-q">${esc(q)}</h1>
+<p class="display sub-a"><span class="dom">${d}</span>${info.disposable ? "Yes, it is disposable." : "No, it is not listed."}</p>
+</div>
+${postmark(info.disposable ? "listed" : "clear", info.disposable ? "ON THE BLOCKLIST" : "NOT ON THE BLOCKLIST", "h")}
+</div>
+</div>
+</header>
+
 <main>
-<section style="border-top:0;padding-top:2.5rem">
-<p><a href="/disposable">Disposable domain list</a></p>
-<h1 style="font-size:clamp(1.5rem,3vw,2rem);max-width:none;font-weight:700">${esc(q)}</h1>
-<p class="verdict ${info.disposable ? "yes" : "no"}">${info.disposable ? "Yes, " + d + " is disposable." : "No, " + d + " is not listed."}</p>
+<section class="sec">
+<div class="wrap">
+<div class="prose">
 <p>${esc(a)}</p>
-${info.disposable ? `<p>If you run a sign-up form, a newsletter or a free trial, rejecting addresses at ${d} keeps fake accounts out of your list and protects your sender reputation.</p>` : ""}
-${info.did_you_mean ? `<p>This domain looks like a misspelling of <a href="/disposable/${esc(info.did_you_mean)}">${esc(info.did_you_mean)}</a>.</p>` : ""}
+${info.disposable ? `<p>If you run a sign-up form, a newsletter or a free trial, turning away addresses at ${d} keeps fake accounts off your list and protects your sender reputation.</p>` : `<p>A domain that is not listed can still be a typo or have no mail servers. The MailSieve API checks those as well.</p>`}
+${typo ? `<p>This domain looks like a misspelling of <a href="/disposable/${esc(typo)}">${esc(typo)}</a>.</p>` : ""}
+</div>
+</div>
 </section>
-<section>
-<h2>Check ${d} addresses automatically</h2>
-<p>The MailSieve API runs this check, plus a live mail-server lookup and typo detection, on any address in one request.</p>
-<pre>curl "https://mailsieve-email-validation.p.rapidapi.com/v1/check?email=someone@${d}" \\
-  -H "X-RapidAPI-Key: YOUR_KEY" \\
-  -H "X-RapidAPI-Host: mailsieve-email-validation.p.rapidapi.com"</pre>
-<p style="margin-top:1.6rem"><a class="btn alt" href="${esc(key)}">Get a free API key</a></p>
+
+<section class="sec sec-ink on-ink">
+<div class="wrap">
+<div class="sec-head"><h2 class="display">Check ${d} addresses in your own app.</h2>
+<p class="lead">The MailSieve API runs this blocklist check, a live mail-server lookup and typo detection on any address in one request.</p></div>
+<pre class="solo-code" tabindex="0" aria-label="Request example"><code>${esc(`curl --get "https://${API_HOST}/v1/check" \\\n  --data-urlencode "email=someone@${domain}" \\\n  -H "X-RapidAPI-Key: YOUR_KEY" \\\n  -H "X-RapidAPI-Host: ${API_HOST}"`)}</code></pre>
+<div class="cta-row"><a class="btn btn-red" href="${esc(ctx.keyUrl)}"${ctx.ext}>Get a free API key</a><a class="btn btn-ghost" href="/#api">See the API</a></div>
+</div>
 </section>
-<section>
-<h2>Other disposable domains</h2>
+
+<section class="sec sec-paper">
+<div class="wrap">
+<h2 class="display">${info.disposable ? "Neighbours on the list." : "Domains on the list."}</h2>
 <ul class="cols">${near.map((x) => `<li><a href="/disposable/${esc(x)}">${esc(x)}</a></li>`).join("")}</ul>
+</div>
+</section>
+
+<section class="sec sec-blue on-blue">
+<div class="wrap lookup">
+<div><h2 class="display">Look up another domain.</h2></div>
+<div>${lookupForm("lookup-domain")}
+<p class="lookup-more">Or <a href="/disposable">browse the whole list</a>.</p></div>
+</div>
 </section>
 </main>`;
+
   return shell(ctx, {
     title: `${q} ${info.disposable ? "Yes" : "No"} | MailSieve`,
-    description: a.slice(0, 155),
+    description: a.length > 158 ? a.slice(0, 155).replace(/\s+\S*$/, "") + "..." : a,
     path: `/disposable/${domain}`,
     body,
     noindex: !info.disposable,
+    scripts: `<script>${LOOKUP_JS}</script>`,
     jsonLd: {
       "@context": "https://schema.org", "@type": "FAQPage",
       mainEntity: [{ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } }],
@@ -264,31 +529,81 @@ ${info.did_you_mean ? `<p>This domain looks like a misspelling of <a href="/disp
   });
 }
 
-export function listPage(ctx, letter) {
+/* ---------- list pages ---------- */
+
+export function listPage(rawCtx, letter, error) {
+  const ctx = context(rawCtx);
   const letters = [...new Set(DISPOSABLE_SORTED.map((x) => x[0]))].sort();
   const items = letter ? DISPOSABLE_SORTED.filter((x) => x[0] === letter) : [];
-  const n = DISPOSABLE_SORTED.length.toLocaleString("en-US");
+  const n = count();
+  const L = letter ? letter.toUpperCase() : "";
   const body = `
+<header class="sub-hero on-blue">
+<div class="wrap">
+${topNav(ctx)}
+<div class="sub-grid">
+<div>
+${letter ? `<p class="crumb"><a href="/disposable">Disposable domain list</a></p>` : ""}
+<h1 class="display sub-a" style="margin-top:${letter ? "1.2rem" : "0"}">${letter ? `Disposable email domains starting with ${esc(L)}` : "Disposable email domain list"}</h1>
+<p class="lead">${letter ? `${items.length.toLocaleString("en-US")} of the ${n} domains on the MailSieve blocklist start with ${esc(L)}.` : `${n} domains that hand out temporary inboxes, refreshed every Monday.`}</p>
+</div>
+</div>
+</div>
+</header>
+
 <main>
-<section style="border-top:0;padding-top:2.5rem">
-<h1 style="font-size:clamp(2rem,4.6vw,3.2rem);max-width:20ch">${letter ? `Disposable email domains starting with ${esc(letter.toUpperCase())}` : "Disposable email domain list"}</h1>
-<p class="lede">${n} domains that hand out temporary inboxes, refreshed every week. Pick a domain to see its status, or check addresses in bulk with the API.</p>
-<p class="letters" style="margin-top:1.6rem;max-width:none">${letters.map((l) => `<a href="/disposable/starting-with/${l}">${l.toUpperCase()}</a>`).join("")}</p>
+<section class="sec sec-blue on-blue" style="padding-top:0">
+<div class="wrap lookup">
+<div><h2 class="display">Is a domain on the blocklist?</h2></div>
+<div>${lookupForm("lookup-list", error)}</div>
+</div>
+</section>
+
+<section class="sec sec-paper">
+<div class="wrap">
+<h2 class="display">${letter ? `Domains starting with ${esc(L)}` : "Browse by first character."}</h2>
+<nav class="letters" aria-label="First character">${letters.map((l) => `<a href="/disposable/starting-with/${l}"${l === letter ? ' aria-current="page"' : ""}>${l.toUpperCase()}</a>`).join("")}</nav>
 ${letter ? `<ul class="cols">${items.map((x) => `<li><a href="/disposable/${esc(x)}">${esc(x)}</a></li>`).join("")}</ul>` : ""}
+</div>
+</section>
+
+<section class="sec sec-ink on-ink">
+<div class="wrap close">
+<h2 class="display">Check addresses against this list automatically.</h2>
+<div class="cta-row" style="margin-top:0"><a class="btn btn-red" href="${esc(ctx.keyUrl)}"${ctx.ext}>Get a free API key</a><a class="btn btn-ghost" href="/#api">See the API</a></div>
+</div>
 </section>
 </main>`;
   return shell(ctx, {
-    title: letter ? `Disposable email domains starting with ${letter.toUpperCase()} | MailSieve` : "Disposable email domain list | MailSieve",
-    description: `Browse ${n} disposable and temporary email domains, refreshed weekly. Check any address with the MailSieve API.`,
+    title: letter ? `Disposable email domains starting with ${L} | MailSieve` : "Disposable email domain list | MailSieve",
+    description: letter
+      ? `${items.length.toLocaleString("en-US")} disposable and temporary email domains starting with ${L}, from a blocklist of ${n} refreshed weekly.`
+      : `Browse ${n} disposable and temporary email domains, refreshed weekly, or look up any domain. Check addresses automatically with the MailSieve API.`,
     path: letter ? `/disposable/starting-with/${letter}` : "/disposable",
     body,
+    noindex: Boolean(error),
+    scripts: `<script>${LOOKUP_JS}</script>`,
   });
 }
 
-export function notFoundPage(ctx) {
+export function notFoundPage(rawCtx) {
+  const ctx = context(rawCtx);
   return shell(ctx, {
     title: "Page not found | MailSieve", description: "This page does not exist.", path: "/404", noindex: true,
-    body: `<main><section style="border-top:0"><h1>This page does not exist.</h1><p class="lede">Go to the <a href="/">home page</a> or browse the <a href="/disposable">disposable domain list</a>.</p></section></main>`,
+    body: `
+<header class="sub-hero on-blue">
+<div class="wrap">
+${topNav(ctx)}
+<div class="sub-grid">
+<div>
+<h1 class="display sub-a">This page was returned to sender.</h1>
+<p class="lead">The address you followed does not exist on MailSieve.</p>
+<div class="cta-row"><a class="btn btn-white" href="/">Go to the home page</a><a class="btn btn-ghost" href="/disposable">Browse the domain list</a></div>
+</div>
+${postmark("undeliverable", "ERROR 404", "h")}
+</div>
+</div>
+</header>`,
   });
 }
 

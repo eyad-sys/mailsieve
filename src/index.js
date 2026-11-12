@@ -1,7 +1,7 @@
 // MailSieve — Cloudflare Worker entry. Routes: paid API (/v1/*, via Rapid),
 // public demo (/demo/check), landing page and programmatic SEO pages.
 import { checkEmail, checkDomainStatic, lookupMx, DOMAIN_RE, DISPOSABLE_SORTED } from "./validate.js";
-import { landingPage, domainPage, listPage, notFoundPage, sitemap, robots } from "./pages.js";
+import { landingPage, domainPage, listPage, notFoundPage, sitemap, robots, FAVICON } from "./pages.js";
 
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
@@ -10,13 +10,15 @@ const JSON_HEADERS = {
 };
 const json = (body, status = 200, extra = {}) =>
   new Response(JSON.stringify(body, null, 2), { status, headers: { ...JSON_HEADERS, ...extra } });
-const html = (body, status = 200, maxAge = 86400) =>
+// Pages are cached briefly so a new deploy reaches visitors within minutes.
+const html = (body, status = 200, maxAge = 600) =>
   new Response(body, {
     status,
     headers: {
       "content-type": "text/html; charset=utf-8",
       "cache-control": `public, max-age=${maxAge}`,
       "x-content-type-options": "nosniff",
+      "referrer-policy": "strict-origin-when-cross-origin",
     },
   });
 const fail = (status, code, message) => json({ error: { code, message } }, status);
@@ -105,17 +107,31 @@ export default {
       }
 
       if (request.method !== "GET" && request.method !== "HEAD") return fail(405, "method_not_allowed", "Use GET.");
-      if (path === "/") return html(landingPage(ctx), 200, 3600);
+      if (path === "/") return html(landingPage(ctx), 200, 300);
       if (path === "/robots.txt") return new Response(robots(ctx), { headers: { "content-type": "text/plain" } });
       if (path === "/sitemap.xml") return new Response(sitemap(ctx), { headers: { "content-type": "application/xml", "cache-control": "public, max-age=86400" } });
       if (path === "/health") return json({ ok: true, disposable_domains: DISPOSABLE_SORTED.length });
 
-      if (path === "/disposable") return html(listPage(ctx, null));
+      if (path === "/favicon.svg" || path === "/favicon.ico") {
+        return new Response(FAVICON, { headers: { "content-type": "image/svg+xml", "cache-control": "public, max-age=604800" } });
+      }
+
+      if (path === "/disposable") {
+        // No-JavaScript fallback for the lookup form: /disposable?domain=example.com
+        const asked = url.searchParams.get("domain");
+        if (asked !== null) {
+          const domain = asked.trim().toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/^.*@/, "").replace(/[/?#].*$/, "").replace(/\.$/, "");
+          if (DOMAIN_RE.test(domain)) return Response.redirect(`${url.origin}/disposable/${domain}`, 302);
+          return html(listPage(ctx, null, "Type a domain such as mailinator.com."), 200, 0);
+        }
+        return html(listPage(ctx, null));
+      }
       const list = path.match(/^\/disposable\/starting-with\/([a-z0-9])$/);
       if (list) return html(listPage(ctx, list[1]));
       const dom = path.match(/^\/disposable\/([^/]+)$/);
       if (dom) {
-        const domain = decodeURIComponent(dom[1]).toLowerCase();
+        let domain;
+        try { domain = decodeURIComponent(dom[1]).toLowerCase(); } catch { return html(notFoundPage(ctx), 404, 300); }
         if (!DOMAIN_RE.test(domain)) return html(notFoundPage(ctx), 404, 300);
         return html(domainPage(ctx, domain));
       }

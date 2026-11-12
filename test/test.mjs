@@ -55,11 +55,28 @@ for (const p of ["/", "/disposable", "/disposable/starting-with/m", "/disposable
   assert.equal(res.status, 200, p);
 }
 let page = await (await call("/disposable/mailinator.com")).text();
-assert.match(page, /Yes, mailinator\.com is disposable/); assert.doesNotMatch(page, /noindex/);
+assert.match(page, /Yes, it is disposable\./); assert.match(page, /Is mailinator\.com a disposable email domain\?/); assert.doesNotMatch(page, /noindex/);
 page = await (await call("/disposable/gmail.com")).text();
 assert.match(page, /noindex/);
 assert.equal((await call("/disposable/%3Cscript%3E")).status, 404);
 assert.equal((await call("/nope")).status, 404);
+assert.equal((await call("/disposable/%E0%A4%A")).status, 404, "malformed percent-encoding is a 404, not a crash");
+for (const p of ["/favicon.svg", "/favicon.ico"]) assert.equal((await call(p)).headers.get("content-type"), "image/svg+xml");
+let red = await call("/disposable?domain=https://Mailinator.com/inbox");
+assert.equal(red.status, 302); assert.equal(red.headers.get("location"), "https://mailsieve.test/disposable/mailinator.com");
+red = await call("/disposable?domain=not a domain");
+assert.equal(red.status, 200); assert.match(await red.text(), /Type a domain such as mailinator\.com/);
+
+// Landing page: embedded data parses and every in-page link has a target.
+page = await (await call("/")).text();
+const data = JSON.parse(page.match(/<script type="application\/json" id="ms-data">([\s\S]*?)<\/script>/)[1]);
+assert.deepEqual(Object.keys(data.snippets), ["check", "domain", "bulk"]);
+for (const k of Object.keys(data.snippets)) { assert.ok(data.snippets[k].curl && data.snippets[k].js && data.snippets[k].python); assert.ok(data.responses[k]); }
+for (const v of ["deliverable", "risky", "undeliverable"]) assert.match(data.stamps[v], /@@B@@/);
+for (const [, id] of page.matchAll(/href="\/?#([a-z-]+)"/g)) assert.ok(page.includes(`id="${id}"`), `missing anchor #${id}`);
+for (const ld of page.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) JSON.parse(ld[1]);
+const withKey = await (await worker.fetch(new Request("https://mailsieve.test/"), { RAPIDAPI_URL: "https://rapidapi.com/x/api/y" })).text();
+assert.match(withKey, /href="https:\/\/rapidapi\.com\/x\/api\/y"/); assert.match(withKey, /href="https:\/\/rapidapi\.com\/x\/api\/y\/pricing"/);
 assert.match(await (await call("/sitemap.xml")).text(), /\/disposable\/yopmail\.com/);
 
 let last;
