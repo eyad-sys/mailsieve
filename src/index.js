@@ -1,6 +1,7 @@
 // MailSieve — Cloudflare Worker entry. Routes: paid API (/v1/*, via Rapid),
 // public demo (/demo/check), landing page and programmatic SEO pages.
 import { checkEmail, checkDomainStatic, lookupMx, DOMAIN_RE, DISPOSABLE_SORTED } from "./validate.js";
+import { ICON48, ICON192 } from "./icons.js";
 import { landingPage, domainPage, listPage, notFoundPage, sitemap, robots, FAVICON } from "./pages.js";
 
 const JSON_HEADERS = {
@@ -112,7 +113,11 @@ export default {
       if (path === "/sitemap.xml") return new Response(sitemap(ctx), { headers: { "content-type": "application/xml", "cache-control": "public, max-age=86400" } });
       if (path === "/health") return json({ ok: true, disposable_domains: DISPOSABLE_SORTED.length });
 
-      if (path === "/favicon.svg" || path === "/favicon.ico") {
+      if (path === "/favicon.ico" || path === "/favicon-48.png" || path === "/favicon-192.png") {
+        const b64 = path === "/favicon-192.png" ? ICON192 : ICON48;
+        return new Response(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)), { headers: { "content-type": "image/png", "cache-control": "public, max-age=604800" } });
+      }
+      if (path === "/favicon.svg") {
         return new Response(FAVICON, { headers: { "content-type": "image/svg+xml", "cache-control": "public, max-age=604800" } });
       }
 

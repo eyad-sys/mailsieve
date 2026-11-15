@@ -245,7 +245,9 @@ ${noindex ? '<meta name="robots" content="noindex">' : ""}
 <meta property="og:url" content="${ctx.origin}${path}">
 <meta name="twitter:card" content="summary">
 <meta name="google-site-verification" content="${GOOGLE_VERIFICATION}">
+<link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon-192.png">
 ${FONTS}
 <style>${CSS}</style>
 ${jsonLd ? `<script type="application/ld+json">${json(jsonLd)}</script>` : ""}
@@ -437,6 +439,8 @@ ${postmark("undeliverable", "FAKES STOP HERE", "c")}
     jsonLd: {
       "@context": "https://schema.org",
       "@graph": [
+        { "@type": "WebSite", name: "MailSieve", alternateName: ["MailSieve API", "MailSieve email validation"], url: ctx.origin + "/" },
+        { "@type": "Organization", name: "MailSieve", url: ctx.origin + "/", logo: ctx.origin + "/favicon-192.png" },
         {
           "@type": "WebAPI", name: "MailSieve", url: ctx.origin + "/", documentation: ctx.origin + "/#api",
           description: "Email validation and disposable email detection API.",
